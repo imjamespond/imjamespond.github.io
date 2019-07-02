@@ -1,0 +1,231 @@
+<html>
+
+<body>
+  <img id="img" alt="image" style="position:absolute;top:0;left:0;z-index: -1;" />
+  <canvas id="test" width="1200" height="500"></canvas>
+
+  <br />
+  x1: <input type="text" id="x1" />,
+  y1: <input type="text" id="y1" />,
+  x2: <input type="text" id="x2" />,
+  y2: <input type="text" id="y2" />,<button id="ok">OK</button>
+  <br /><br /><br /><br />
+  <input type="file" id="files" multiple />
+</body>
+
+<script>
+  var context = document.getElementById('test').getContext('2d');
+
+  function n(x1, y1, x2, y2, ctx, lineW, fillStyle) {
+    this.x1 = x1,
+      this.y1 = y1,
+      this.x2 = x2,
+      this.y2 = y2,
+
+      this.x = x1,
+      this.y = y1,
+      this.context = ctx,
+      this.lineW = lineW,
+
+      this.canW = this.context.canvas.width,
+      this.canH = this.context.canvas.height,
+      this.fillStyle = fillStyle
+
+    this.speed = 1.5
+  }
+
+  n.prototype.init = function () {
+    const { y2, y1, x2, x1 } = this;
+    this.angle = Math.atan2(y2 - y1, x2 - x1),
+      this.detalX = x2 - x1,
+      this.detalY = y2 - y1,
+      this.active = true,
+      this.speedX = this.speed * Math.cos(this.angle),
+      this.speedY = this.speed * Math.sin(this.angle);
+  }
+
+  n.prototype.update = function () {
+    this.dis = Math.sqrt(Math.pow(this.x2 - this.x, 2) + Math.pow(this.y2 - this.y, 2));
+    this.dis > this.speed ? (this.x += this.speedX, this.y += this.speedY) : this.reset();
+    this.draw();
+
+    // console.log(this.dis)
+  }
+  n.prototype.draw = function () {
+    this.context.beginPath(),
+      this.context.arc(this.x, this.y, this.lineW, 0, 2 * Math.PI),
+      this.context.fillStyle = this.fillStyle,
+      this.context.fill()
+  }
+
+  n.prototype.reset = function () {
+    this.x = this.x1,
+      this.y = this.y1,
+      this.cubeActive = !1
+  }
+
+  //curve
+
+  function o(t, e) {
+    var n = 1 - t;
+    return n * n * n * e[0][0] + 3 * n * n * t * e[1][0] + 3 * n * t * t * e[2][0] + t * t * t * e[3][0]
+  }
+  function r(t, e) {
+    var n = 1 - t;
+    return n * n * n * e[0][1] + 3 * n * n * t * e[1][1] + 3 * n * t * t * e[2][1] + t * t * t * e[3][1]
+  }
+  function a(t, e) {
+    var n = 1 - t;
+    return -3 * e[0][0] * n * n + 3 * e[1][0] * n * n - 6 * e[1][0] * n * t + 6 * e[2][0] * n * t - 3 * e[2][0] * t * t + 3 * e[3][0] * t * t
+  }
+  function s(t, e) {
+    var n = 1 - t;
+    return -3 * e[0][1] * n * n + 3 * e[1][1] * n * n - 6 * e[1][1] * n * t + 6 * e[2][1] * n * t - 3 * e[2][1] * t * t + 3 * e[3][1] * t * t
+  }
+
+  function c(t, e) {
+    var n = a(t, e)
+      , i = s(t, e);
+    return Math.sqrt(n * n + i * i)
+  }
+
+  function u(t, e) {
+    var n = 1e4
+      , i = n * t;
+    if (1 & i && i++ ,
+      0 == i)
+      return 0;
+    for (var o = i / 2, r = 0, a = 0, s = t / i, u = 0; u < o; u++)
+      r += c((2 * u + 1) * s, e);
+    for (var l = 1; l < o; l++)
+      a += c(2 * l * s, e);
+    return (c(0, e) + c(1, e) + 2 * a + 4 * r) * s / 3
+  }
+
+  function l(t, e, n) {
+    for (var i, o = t * e, r = t; ;) {
+      if (i = r - (u(r, n) - o) / c(r, n),
+        Math.abs(r - i) < 1e-4)
+        break;
+      r = i
+    }
+    return i
+  }
+
+  function i(points, ctx, lineW, style) {
+    this.nIndex = 0,
+      this.p = points,
+      this.totalLength = u(1, this.p),
+      this.context = ctx,
+      this.lineW = lineW,
+      this.cubeActive = !1,
+      this.canW = this.context.canvas.width,
+      this.canH = this.context.canvas.height,
+      this.fillStyle = style
+  }
+
+  i.prototype.draw = function () {
+    this.context.beginPath(),
+      this.context.arc(this.x, this.y, this.lineW, 0, 2 * Math.PI),
+      this.context.fillStyle = this.fillStyle,
+      this.context.fill(),
+      this.context.restore()
+  }
+
+  i.prototype.update = function () {
+    if (this.nIndex >= 0 && this.nIndex <= this.STEP) {
+      var t = this.nIndex / this.STEP;
+      t = l(t, this.totalLength, this.p),
+        this.x = o(t, this.p),
+        this.y = r(t, this.p),
+        this.draw(),
+        this.nIndex++
+    } else
+      this.cubeActive = !0
+  }
+
+  i.prototype.reset = function () {
+    this.nIndex = 0,
+      this.cubeActive = !1
+  }
+
+  var x1 = 10, y1 = 10, x2 = 100, y2 = 100;
+
+  var line = new n(x1, y1, x2, y2, context, 2.1, "#00d7ff")
+  line.init();
+
+  var speedCurve = 1.5;
+  var curve = new i([[961, 278], [812, 278], [672, 227], [672, 149]],
+    context,
+    2.1,
+    "rgba(0,215,255,1)"
+  );
+  curve.name = "curve";
+  curve.STEP = Math.floor(curve.totalLength / speedCurve);
+  console.log(curve.totalLength, speedCurve, curve)
+
+
+  function destinationIn(ctx, opacity, width, height) {
+    ctx.globalCompositeOperation = "destination-in",
+      ctx.fillStyle = `hsla(180, 100%, 50%, ${opacity})`,
+      ctx.beginPath(),
+      ctx.fillRect(0, 0, width, height),
+      ctx.globalCompositeOperation = "source-over";
+  }
+
+  function step(timestamp) {
+    // console.log(timestamp)
+
+    destinationIn(context, 0.998, 1920, 1080)
+
+    line.update()
+    curve.update()
+
+    window.requestAnimationFrame(step);
+  }
+
+  window.requestAnimationFrame(step);
+
+  // Check for the various File API support.
+  if (window.File && window.FileReader && window.FileList && window.Blob) {
+    console.log('Great success! All the File APIs are supported.');
+  } else {
+    alert('The File APIs are not fully supported in this browser.');
+  }
+
+  function createObjectURL(object) {
+    return (window.URL) ? window.URL.createObjectURL(object) : window.webkitURL.createObjectURL(object);
+  }
+
+  function revokeObjectURL(url) {
+    return (window.URL) ? window.URL.revokeObjectURL(url) : window.webkitURL.revokeObjectURL(url);
+  }
+
+
+  function handleFileSelect(evt) {
+    var files = evt.target.files; // FileList object
+    for (var i = 0, f; f = files[i]; i++) {
+      var src = createObjectURL(this.files[i]);
+      var image = document.getElementById('img');
+      image.src = src;
+
+      console.log(f.name, f.type || 'n/a', f.size, ' bytes, last modified: ', f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a')
+    }
+  }
+  document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+  const btn_ok = document.querySelector('#ok');
+  btn_ok.addEventListener('click', e => { 
+    const input_x1 = document.querySelector('#x1'), input_y1 = document.querySelector('#y1'),
+    input_x2 = document.querySelector('#x2'), input_y2 = document.querySelector('#y2')
+    line.x1 = parseInt(input_x1.value || '0')
+    line.y1 = parseInt(input_y1.value || '0')
+    line.x2 = parseInt(input_x2.value || '0')
+    line.y2 = parseInt(input_y2.value || '0')
+    line.init();
+    line.reset() 
+  });
+
+</script>
+
+</html>
